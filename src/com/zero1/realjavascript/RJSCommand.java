@@ -1095,6 +1095,13 @@ class RJSCommand {
 					result = indexOfInternal;
 			}
 		}
+		if (result.toString().contains(RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString())) {
+			String innerCommand = result.toString();
+			innerCommand = RJSDataPool.get(innerCommand).toString();
+			List<RJSResult> results = RJSParser.parse(from, innerCommand);
+			if (results != null && !results.isEmpty())
+				result = results.get(0).getResult();
+		}
 		return result;
 	}
 

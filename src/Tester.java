@@ -45,15 +45,7 @@ public class Tester {
 	}
 
 	private void runRJS() {
-		// String command = "class tc methods <? not <@java.lang.Boolean bool@>
-		// {call java.lang.System.out.println !$bool} ?> and create &tc a and
-		// call &a.not false";
-		// String command = "var v=<@java.lang.Integer bool@>{$bool} and var
-		// v={456} and call show (call (&v 22).floatValue)";
-		String command = "var v={11}:{call show 123} and call &v<1>";
-//		 String command = "var v= \"Sanju\":\"Hi\" and call show &v<1>";
-		// String command = "var v=46:22:66:123 and loop &v<0..l> {call show
-		// &v<0>}";
+		String command = "var v={11}:{compute (call getNum c,b)- b} and call show &v<1>";
 		long time1 = System.currentTimeMillis();
 		RJSBridge.interpret(this, command);
 		long time2 = System.currentTimeMillis();
