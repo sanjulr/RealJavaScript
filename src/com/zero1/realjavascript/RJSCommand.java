@@ -169,14 +169,22 @@ class RJSCommand {
 				callFrom = storedObject;
 			} else {
 				RJSResult callFromResult = new RJSCommand(object).execute(from);
-				if (callFromResult == null || callFromResult.getResult() == null) {
+				if (callFromResult != null && callFromResult.getResult() != null) {
+					if (callFromResult.getObjectType().equals(String.class)
+							&& object.equals(callFromResult.getResult()))
+						try {
+							callFrom = Class.forName(object);
+						} catch (ClassNotFoundException e) {
+							callFrom = callFromResult.getResult();
+						}
+					else
+						callFrom = callFromResult.getResult();
+				} else {
 					try {
 						callFrom = Class.forName(object);
 					} catch (ClassNotFoundException e) {
-
 					}
-				} else
-					callFrom = callFromResult.getResult();
+				}
 			}
 		}
 		String parametersString;
