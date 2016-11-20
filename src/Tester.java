@@ -1,3 +1,5 @@
+import java.util.Date;
+
 import com.zero1.realjavascript.RJSBridge;
 
 public class Tester {
@@ -15,6 +17,7 @@ public class Tester {
 	private static String[] sa2 = { "Hello", null, "Nalla", "Irukiya" };
 	private static int[] ia = { 1, 2, 34 };
 	private static boolean[] ba = { false, true };
+	java.lang.String[] myArray = { "String 1", "String 2", "String 3", "String 4", "String 5" };
 
 	public static void main(String[] args) throws Exception {
 		test();
@@ -45,12 +48,25 @@ public class Tester {
 	}
 
 	private void runRJS() {
-		String command = "var v={11}:{compute (call getNum c,b)- b} and call show &v<1>";
+		// String command = "var v={11}:{compute (call getNum c,b)- b} and call
+		// show &v<1>";
+		// String command = "if{(is 2>1) && (is 3>1)} then {call
+		// java.lang.System.out.println true} else {call
+		// java.lang.System.out.println false}";
+		String command = "call java.lang.System.out.println (call doubleD 431)";
 		long time1 = System.currentTimeMillis();
-		RJSBridge.interpret(this, command);
+		RJSBridge.interpret(this, command, "");
 		long time2 = System.currentTimeMillis();
 		long diff1 = time2 - time1;
 		System.out.println("\nTook " + diff1 / 1000d + " seconds...\n");
+	}
+
+	public float floatVal(int f) {
+		return f;
+	}
+
+	private int funcToAdd2Nos(int n1, int n2) {
+		return n1 + n2;
 	}
 
 	private static void hi(String name) {
@@ -71,6 +87,10 @@ public class Tester {
 
 	private int getNum(int a, int b) {
 		return a * b;
+	}
+
+	private Object doubleD(double d) {
+		return d;
 	}
 
 	private String getToString(Object obj) {

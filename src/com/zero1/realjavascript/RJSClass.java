@@ -148,7 +148,9 @@ class RJSClass {
 						break;
 					}
 				} else {
-					List<Class<?>> parametersTypes = new ArrayList<>(methodParameters.values());
+					List<Class<?>> parametersTypes = new ArrayList<>();
+					if (methodParameters != null)
+						parametersTypes.addAll(methodParameters.values());
 					if (parametersTypes.size() != value.length)
 						continue;
 					for (int i = 0; i < parametersTypes.size(); i++) {

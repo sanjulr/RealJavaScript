@@ -70,6 +70,22 @@ class RJSResult {
 						this.result = this.result.toString();
 						this.objectType = String.class;
 						this.resultType = ResultType.STRING;
+					} else if (Number.class.isAssignableFrom(castToClass)
+							&& Number.class.isAssignableFrom(this.result.getClass())) {
+						if (castToClass.isAssignableFrom(Byte.class))
+							this.result = ((Number) this.result).byteValue();
+						else if (castToClass.isAssignableFrom(Short.class))
+							this.result = ((Number) this.result).shortValue();
+						else if (castToClass.isAssignableFrom(Integer.class))
+							this.result = ((Number) this.result).intValue();
+						else if (castToClass.isAssignableFrom(Float.class))
+							this.result = ((Number) this.result).floatValue();
+						else if (castToClass.isAssignableFrom(Long.class))
+							this.result = ((Number) this.result).longValue();
+						else if (castToClass.isAssignableFrom(Double.class))
+							this.result = ((Number) this.result).doubleValue();
+						this.objectType = this.result.getClass();
+						this.resultType = ResultType.OBJECT;
 					}
 				}
 			this.index = RJSDataPool.add(this.result);

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import com.zero1.realjavascript.RJSParameter.ParameterType;
+import com.zero1.realjavascript.RJSResult.ResultType;
 
 class RJSCommand {
 
@@ -40,6 +41,8 @@ class RJSCommand {
 	public RJSResult execute(Object from)
 			throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchFieldException,
 			SecurityException, ClassNotFoundException, InstantiationException, NoSuchMethodException {
+		if (trimmedCommand.isEmpty())
+			return null;
 		if (isCallCommand())
 			return executeCallCommand(from);
 		else if (isComputeCommand())
@@ -130,7 +133,7 @@ class RJSCommand {
 		int indexOfMethodName = upperCaseCommand.indexOf(RJSKeyword.CALL.toString()) + RJSKeyword.CALL.length();
 		int indexOfTo = -1;
 		if (isResultSetToCommand())
-			indexOfTo = upperCaseCommand.indexOf(RJSKeyword.TO.toString());
+			indexOfTo = upperCaseCommand.indexOf(RJSKeyword.TO.toString()) + RJSKeyword.TO.toString().trim().length();
 		int indexOfSpace = trimmedCommand.trim().indexOf(RJSKeyword.SPACE.toString(), indexOfMethodName);
 		String methodName = trimmedCommand
 				.substring(indexOfMethodName, indexOfSpace == -1 ? trimmedCommand.length() : indexOfSpace).trim();
@@ -203,16 +206,20 @@ class RJSCommand {
 				parameterObjects[i] = parameters.get(i).getParameter();
 			int methodId = RJSDataPool.getMethodId(methodName, parameterObjects);
 			if (methodId != -1) {
-				String method = RJSDataPool.getMethod(methodId);
+				String method = RJSDataPool.getMethod(methodName, methodId);
 				if (method.contains(RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString()))
 					method = new RJSParameter(method).getParameter().toString();
 				if (!parameterTypes.isEmpty())
-					RJSDataPool.setMethodArguments(methodId, parameterObjects);
+					RJSDataPool.setMethodArguments(methodName, methodId, parameterObjects);
 				method = method.replace(RJSKeyword.METHOD_ARGUMENT_ACCESS.toString(),
 						RJSKeyword.METHOD_ARGUMENT_ACCESS.toString() + methodId);
 				List<RJSResult> results = RJSParser.parse(callFrom, method);
 				RJSDataPool.clearMethodArguments(methodName);
 				return results.get(results.size() - 1);
+			} else {
+				RJSParameter parameter = new RJSParameter(methodName);
+				List<RJSParameter> parameterList = new ArrayList<>();
+				parameterList.add(parameter);
 			}
 		} else if (callFrom instanceof RJSClass) {
 			RJSClass rjsClass = (RJSClass) callFrom;
@@ -230,6 +237,24 @@ class RJSCommand {
 				rjsClass.setMethodArguments(methodName, parameterObjects);
 			method = method.replace(RJSKeyword.METHOD_ARGUMENT_ACCESS.toString(),
 					RJSKeyword.METHOD_ARGUMENT_ACCESS.toString() + methodId);
+			int lastCommandIndex = -1;
+			while (method.indexOf(RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString(), lastCommandIndex) != -1) {
+				int indexOfStartOfCommand = method.indexOf(
+						RJSKeyword.WITH_DATA.toString() + RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString(),
+						lastCommandIndex);
+				int indexOfEndOfCommand = method.indexOf(RJSKeyword.DATA_POOL_CLOSE_BRACE.toString(),
+						indexOfStartOfCommand) + RJSKeyword.DATA_POOL_CLOSE_BRACE.length();
+				String commandString = (String) RJSDataPool
+						.get(method.substring(indexOfStartOfCommand, indexOfEndOfCommand));
+				commandString = commandString.replace(RJSKeyword.METHOD_ARGUMENT_ACCESS.toString(),
+						RJSKeyword.METHOD_ARGUMENT_ACCESS.toString() + methodId);
+				int innerCommandIndex = new RJSResult(commandString, ResultType.COMMAND).getIndex();
+				method = new StringBuilder(method).replace(
+						lastCommandIndex = indexOfStartOfCommand + RJSKeyword.WITH_DATA.length()
+								+ RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.length(),
+						indexOfEndOfCommand - RJSKeyword.DATA_POOL_CLOSE_BRACE.length(),
+						String.valueOf(innerCommandIndex)).toString();
+			}
 			List<RJSResult> results = RJSParser.parse(callFrom, method);
 			rjsClass.clearMethodArguments(methodName);
 			return results.get(results.size() - 1);
@@ -582,8 +607,7 @@ class RJSCommand {
 			parametersString = command.substring(indexOfElse + RJSKeyword.ELSE.length());
 		if (isTrue || indexOfElse != -1)
 			parametersString = (String) RJSDataPool.get(parametersString.trim());
-		RJSParser.parse(from, parametersString.substring(0, parametersString.length()));
-		return null;
+		return RJSParser.parse(from, parametersString.substring(0, parametersString.length())).get(0);
 	}
 
 	private RJSResult executeClassCommand(Object from)
@@ -617,6 +641,7 @@ class RJSCommand {
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	private RJSResult executeLoopCommand(Object from)
 			throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchFieldException,
 			SecurityException, ClassNotFoundException, InstantiationException, NoSuchMethodException {
@@ -654,8 +679,14 @@ class RJSCommand {
 			else if (startIndexString.equals(RJSKeyword.LOOP_MAX_LENGTH.toString())) {
 				variable = variable.substring(0, variable.indexOf(RJSKeyword.ARRAY_ACCESS_OPEN.toString()));
 				variable = new RJSCommand(variable).execute(from).getParameterString();
-				@SuppressWarnings("unchecked")
-				List<Object> array = (List<Object>) RJSDataPool.get(variable);
+				final List<Object> array;
+				Object arrayObject = RJSDataPool.get(variable);
+				if (arrayObject.getClass().isArray()) {
+					array = new ArrayList<>();
+					for (Object object : (Object[]) arrayObject)
+						array.add(object);
+				} else
+					array = (List<Object>) arrayObject;
 				startIndex = array.size() - 1;
 			}
 			if (RJSNumber.isNumber(endIndexString))
@@ -663,8 +694,14 @@ class RJSCommand {
 			else if (endIndexString.equals(RJSKeyword.LOOP_MAX_LENGTH.toString())) {
 				variable = variable.substring(0, variable.indexOf(RJSKeyword.ARRAY_ACCESS_OPEN.toString()));
 				variable = new RJSCommand(variable).execute(from).getParameterString();
-				@SuppressWarnings("unchecked")
-				List<Object> array = (List<Object>) RJSDataPool.get(variable);
+				final List<Object> array;
+				Object arrayObject = RJSDataPool.get(variable);
+				if (arrayObject.getClass().isArray()) {
+					array = new ArrayList<>();
+					for (Object object : (Object[]) arrayObject)
+						array.add(object);
+				} else
+					array = (List<Object>) arrayObject;
 				endIndex = array.size() - 1;
 			}
 			reverse = endIndex - startIndex < 0;
@@ -674,7 +711,6 @@ class RJSCommand {
 			List<RJSParameter> parameters = new ArrayList<>();
 			parameters.add(parameter);
 			parameters = getActualParameters(from, parameters);
-			@SuppressWarnings("unchecked")
 			List<Object> array = (List<Object>) parameters.get(0).getParameter();
 			endIndex = array.size() - 1;
 		}
@@ -807,7 +843,7 @@ class RJSCommand {
 						arrayValues.add(parameter.getParameter());
 					value = arrayValues;
 				} else if (valueString.contains(RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString()))
-					createVarMethod(name, valueString);
+					createVarMethod(name.trim(), valueString);
 				else {
 					valueParameters.add(new RJSParameter(fieldWithValue[1]));
 					valueParameters = getActualParameters(from, valueParameters);
@@ -843,7 +879,8 @@ class RJSCommand {
 				argumentToClassMap.put(argumentName, argumentTypeClass);
 			}
 			RJSDataPool.declareMethod(methodName, argumentToClassMap);
-			String methodDefinition = valueWithArguments.substring(indexOfArgumentsEnd);
+			String methodDefinition = valueWithArguments
+					.substring(indexOfArgumentsEnd + RJSKeyword.CLASS_METHOD_ARGUMENT_CLOSE.toString().trim().length());
 			RJSDataPool.defineMethod(methodName, (String) RJSDataPool.get(methodDefinition));
 		} else {
 			RJSDataPool.declareMethod(methodName, null);
@@ -1363,7 +1400,8 @@ class RJSCommand {
 				indexOfArgumentsEnd = indexOfSpace;
 				rjsClass.declareMethod(methodName, null);
 			}
-			String methodDefinition = methods.substring(indexOfArgumentsEnd);
+			String methodDefinition = methods
+					.substring(indexOfArgumentsEnd + RJSKeyword.CLASS_METHOD_ARGUMENT_CLOSE.toString().trim().length());
 			rjsClass.defineMethod(methodName, (String) RJSDataPool.get(methodDefinition));
 		}
 	}
@@ -1402,6 +1440,7 @@ class RJSCommand {
 
 	private static Method getMethod(Class<?> classToUse, String methodName, List<Class<?>> parameterTypes)
 			throws NoSuchMethodException, SecurityException {
+		Method closestMatchingMethod = null;
 		while (classToUse != null) {
 			Method[] methods = (classToUse.isInterface() ? classToUse.getMethods() : classToUse.getDeclaredMethods());
 			methodLoop: for (Method method : methods)
@@ -1411,11 +1450,18 @@ class RJSCommand {
 					if (typesList.size() == parameterTypes.size()) {
 						for (int i = 0; i < typesList.size(); i++) {
 							Class<?> type = typesList.get(i);
+							if (Number.class.isAssignableFrom(type)
+									&& Number.class.isAssignableFrom(parameterTypes.get(i)))
+								closestMatchingMethod = method;
 							if (!type.isAssignableFrom(parameterTypes.get(i))) {
 								if (type.isPrimitive()) {
+									if (Number.class.isAssignableFrom(getJavaClass(type))
+											&& Number.class.isAssignableFrom(parameterTypes.get(i)))
+										closestMatchingMethod = method;
 									Class<?> primitiveClass = getPrimitiveClass(parameterTypes.get(i));
-									if (primitiveClass == null || !type.isAssignableFrom(primitiveClass))
+									if (primitiveClass == null || !type.isAssignableFrom(primitiveClass)) {
 										continue methodLoop;
+									}
 								} else
 									continue methodLoop;
 							}
@@ -1425,8 +1471,30 @@ class RJSCommand {
 				}
 			classToUse = classToUse.getSuperclass();
 		}
-		return null;
+		return closestMatchingMethod;
+	}
 
+	private static Class<?> getJavaClass(Class<?> primitiveClass) {
+		if (primitiveClass.equals(byte.class))
+			return Byte.class;
+		else if (primitiveClass.equals(short.class))
+			return Short.class;
+		else if (primitiveClass.equals(boolean.class))
+			return Boolean.class;
+		else if (primitiveClass.equals(char.class))
+			return Character.class;
+		else if (primitiveClass.equals(int.class))
+			return Integer.class;
+		else if (primitiveClass.equals(long.class))
+			return Long.class;
+		else if (primitiveClass.equals(float.class))
+			return Float.class;
+		else if (primitiveClass.equals(double.class))
+			return Double.class;
+		else if (primitiveClass.equals(void.class))
+			return Void.class;
+		else
+			return null;
 	}
 
 	private static Class<?> getPrimitiveClass(Class<?> objectClass) {

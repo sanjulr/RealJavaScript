@@ -11,8 +11,8 @@ class RJSDataPool {
 
 	private static List<Object> data = new ArrayList<>();
 	private static Map<String, Integer> objectNameMap = new HashMap<>();
-	private static Map<Integer, LinkedHashMap<String, Class<?>>> methodDeclarations = new HashMap<>();
-	private static Map<Integer, String> methodDefinitions = new HashMap<>();
+	private static Map<Map<String, Integer>, LinkedHashMap<String, Class<?>>> methodDeclarations = new HashMap<>();
+	private static Map<Map<String, Integer>, String> methodDefinitions = new HashMap<>();
 	private static Map<Integer, Map<String, Object>> methodParametersDefinition = new HashMap<>();
 	private static Map<String, List<Integer>> methodNameToIdMapping = new HashMap<>();
 	private static HashMap<String, RJSClass> rjsClassMap;
@@ -140,33 +140,44 @@ class RJSDataPool {
 		}
 		int id = methodIds.size() + 1;
 		methodIds.add(id);
+		Map<String, Integer> methodNameToIdMapping = new HashMap<>();
+		methodNameToIdMapping.put(name, id);
 		RJSDataPool.methodNameToIdMapping.put(name, methodIds);
-		RJSDataPool.methodDeclarations.put(id, arguments);
+		RJSDataPool.methodDeclarations.put(methodNameToIdMapping, arguments);
 	}
 
-	protected static void defineMethod(String name, String command) {
-		List<Integer> methodIds = RJSDataPool.methodNameToIdMapping.get(name);
-		RJSDataPool.methodDefinitions.put(methodIds.size(), command);
+	protected static void defineMethod(String methodName, String command) {
+		List<Integer> methodIds = RJSDataPool.methodNameToIdMapping.get(methodName);
+		Map<String, Integer> methodNameToIdMapping = new HashMap<>();
+		methodNameToIdMapping.put(methodName, methodIds.size());
+		RJSDataPool.methodDefinitions.put(methodNameToIdMapping, command);
 	}
 
-	protected static String getMethod(int methodId) {
-		return RJSDataPool.methodDefinitions.get(methodId);
+	protected static String getMethod(String methodName, int methodId) {
+		Map<String, Integer> methodNameToIdMapping = new HashMap<>();
+		methodNameToIdMapping.put(methodName, methodId);
+		return RJSDataPool.methodDefinitions.get(methodNameToIdMapping);
 	}
 
-	protected static Set<Integer> getMethods() {
+	protected static Set<Map<String, Integer>> getMethods() {
 		return RJSDataPool.methodDefinitions.keySet();
 	}
 
-	protected static ArrayList<Class<?>> getMethodParametersTypes(String name) {
+	protected static ArrayList<Class<?>> getMethodParametersTypes(String methodName, int methodId) {
 		ArrayList<Class<?>> methodParametersList = new ArrayList<>();
-		if (RJSDataPool.methodDeclarations.containsKey(name))
-			methodParametersList.addAll(RJSDataPool.methodDeclarations.get(name).values());
+		Map<String, Integer> methodNameToIdMapping = new HashMap<>();
+		methodNameToIdMapping.put(methodName, methodId);
+		if (RJSDataPool.methodDeclarations.containsKey(methodNameToIdMapping))
+			methodParametersList.addAll(RJSDataPool.methodDeclarations.get(methodNameToIdMapping).values());
 		return methodParametersList;
 	}
 
-	protected static void setMethodArguments(int methodId, Object... value) {
+	protected static void setMethodArguments(String methodName, int methodId, Object... value) {
 		if (methodId != -1) {
-			LinkedHashMap<String, Class<?>> methodParameters = RJSDataPool.methodDeclarations.get(methodId);
+			Map<String, Integer> methodNameToIdMapping = new HashMap<>();
+			methodNameToIdMapping.put(methodName, methodId);
+			LinkedHashMap<String, Class<?>> methodParameters = RJSDataPool.methodDeclarations
+					.get(methodNameToIdMapping);
 			List<String> parameters = new ArrayList<>(methodParameters.keySet());
 			if (parameters.size() == value.length) {
 				Map<String, Object> methodParametersMap;
@@ -198,12 +209,15 @@ class RJSDataPool {
 			return null;
 	}
 
-	protected static int getMethodId(String name, Object... value) {
-		List<Integer> methodIds = RJSDataPool.methodNameToIdMapping.get(name);
+	protected static int getMethodId(String methodName, Object... value) {
+		List<Integer> methodIds = RJSDataPool.methodNameToIdMapping.get(methodName);
 		int methodToExecute = -1;
 		if (methodIds != null)
 			methodLoop: for (int methodId : methodIds) {
-				LinkedHashMap<String, Class<?>> methodParameters = RJSDataPool.methodDeclarations.get(methodId);
+				Map<String, Integer> methodNameToIdMapping = new HashMap<>();
+				methodNameToIdMapping.put(methodName, methodId);
+				LinkedHashMap<String, Class<?>> methodParameters = RJSDataPool.methodDeclarations
+						.get(methodNameToIdMapping);
 				if (value == null || value.length == 0) {
 					if (methodParameters != null && !methodParameters.isEmpty())
 						continue;
@@ -212,7 +226,9 @@ class RJSDataPool {
 						break;
 					}
 				} else {
-					List<Class<?>> parametersTypes = new ArrayList<>(methodParameters.values());
+					List<Class<?>> parametersTypes = new ArrayList<>();
+					if (methodParameters != null)
+						parametersTypes.addAll(methodParameters.values());
 					if (parametersTypes.size() != value.length)
 						continue;
 					for (int i = 0; i < parametersTypes.size(); i++) {
