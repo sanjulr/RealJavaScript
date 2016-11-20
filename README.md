@@ -94,6 +94,7 @@ public class MyJavaClass {
 > order is from the inner most nested command to the outer command. If
 > the command inside the ***( )*** braces, if the execution results in a
 > value, it is returned to the outer command.  
+> 
 > ***Nested multiple commands***:  `call java.lang.System.out.println {create
 > java.util.Date date and create java.lang.String dateString = call
 > &date.toString and call &dateString.length}` will execute commands
@@ -106,6 +107,19 @@ public class MyJavaClass {
 > command. In the above example, `call &dateString.length` is the last
 > statement and thus the result of this command is returned to the outer
 > command.
+
+ - *null* keyword can be used in RJS Script just the same way it is used in Java.
+>  ***Example***: `java.lang.String myString=null;`  `call
+> java.lang.System.out.println (is myString==null)` will print *true* in
+> the system console.
+
+ - *this* keyword in RJS Script refers to the object passed to RJSBridge. The passed object is used for operations ***this*** is used in RJS.
+> Example: `call this.print this.myVariable` will call the the method
+> named *print* by passing *myVariable* as parameter for that method.
+> Here, both the method *print* and the variable *myVariable* belong to
+> the object that was passed to RJSBridge. So ***this*** keyword *refers
+> to the object that was passed to RJSBridge* and not the conventional
+> Java's ***this***.
 
  - Numbers, Strings and boolean can be defined as done in Java.
 >  ***Example***:   **Numbers**: `compute 1+a`, Here *1* is considered
@@ -189,11 +203,10 @@ public class MyJavaClass {
 > *Subtraction*: `compute 3-5` will return the value *-2*.
 > *Multiplication*: `compute 3*5` will return the value *15*.
 > *Division*: `compute 3/5` will return the value *0.6*.
-
 	
 **TO:**
 
- - Used to set the result of an operation to a variable or object. 
+ - Used to set the result of an operation to a variable or object.
 > ***Example***: `call funcToAdd2Nos 5, (compute 3+7) to b` will call the method named *funcToAdd2Nos* by passing values *5* and the
 > computational result by calling `compute 3+7` and the result is
 > assigned to the variable named *b*. So in this example, *15* is
@@ -262,17 +275,6 @@ public class MyJavaClass {
 >  ***Example***: `if (is a>b) then {call java.lang.System.out.println
 > "Hello"}` will evaluate `is a>b` and if the result is *true*, the
 > ***then*** part will be executed. If the result is *false*, nothing is executed.
-
-		
-**this:**
-
- - The object passed to RJSBridge is used for operations when referred to ***this*** keyword.
-> Example: `call this.print this.myVariable` will call the the method
-> named *print* by passing *myVariable* as parameter for that method.
-> Here, both the method *print* and the variable *myVariable* belong to
-> the object that was passed to RJSBridge. So ***this*** keyword *refers
-> to the object that was passed to RJSBridge* and not the conventional
-> Java's ***this***.
 
 **CLASS:**
 
@@ -343,7 +345,7 @@ public class MyJavaClass {
 **LOOP:**
 
 Consider the following array for the examples listed below:
-java.lang.String[] myArray = {"String 1", "String 2", "String 3", "String 4", "String 5"};
+`java.lang.String[] myArray = {"String 1", "String 2", "String 3", "String 4", "String 5"};`
 
  - Used to iterate over a array.
 >  ***Example***: `loop myArray<> {call java.lang.System.out.println
@@ -398,7 +400,7 @@ java.lang.String[] myArray = {"String 1", "String 2", "String 3", "String 4", "S
 > date 1479547474671 as java.lang.String)` will cast the created
 > *java.util.Date* object named *date* to *java.lang.String* and will print *Sat Nov 19 14:54:34 IST 2016* in the system's console.
 
-**Arrays:**
+**ARRAYS:**
 
  - Arrays can be created with RJS.
 >  ***Example***: `create java.lang.Integer array=1:2:3:4:5 and loop
@@ -406,7 +408,7 @@ java.lang.String[] myArray = {"String 1", "String 2", "String 3", "String 4", "S
 > *java.lang.Integer* array with the values *1, 2, 3, 4, 5*. The array values are to be separated by the symbol ***:***. This will print the
 > integers *1, 2, 3, 4, 5* in the system's console.
 
-- A particular index of an array can be accessed using the <index> braces.
+ - A particular index of an array can be accessed using the <index> braces.
 > ***Example***: `call java.lang.System.out.println myArray<2>` will print the value at index number *2* in the array object *myArray*.
 
 **VAR:**
@@ -452,14 +454,3 @@ java.lang.String[] myArray = {"String 1", "String 2", "String 3", "String 4", "S
 > *class java.lang.Integer* in the system console. `var myVariable=123 and assign (create java.util.Date date) to &myVariable and call
 > java.lang.System.out.println (call &myVariable.getClass)` will print
 > *class java.util.Date* in the system console.
-
-**null:**
-
- - Used to point to null like in Java.
->  ***Example***: `java.lang.String myString=null;`  `call
-> java.lang.System.out.println (is myString==null)` will print *true* in
-> the system console.
-
-
-
-
