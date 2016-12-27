@@ -68,6 +68,8 @@ class RJSKeyword {
 	protected static final RJSKeyword NULL = new RJSKeyword("null");
 	protected static final RJSKeyword RESULT_APPEND = new RJSKeyword("+");
 	protected static final RJSKeyword AS = new RJSKeyword(" AS ");
+	protected static final RJSKeyword INTERFACE_METHODS_OPEN = new RJSKeyword("<?");
+	protected static final RJSKeyword INTERFACE_METHODS_CLOSE = new RJSKeyword("?>");
 
 	private String key;
 

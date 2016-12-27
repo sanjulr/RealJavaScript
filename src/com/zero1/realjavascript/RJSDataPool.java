@@ -38,6 +38,8 @@ class RJSDataPool {
 		if (!RJSDataPool.data.contains(data))
 			RJSDataPool.data.add(data);
 		int index = RJSDataPool.data.indexOf(data);
+		if (index == -1)
+			index = RJSDataPool.data.size() - 1;
 		if (mapName != null && !mapName.trim().isEmpty())
 			RJSDataPool.objectNameMap.put(mapName, index);
 		return index;

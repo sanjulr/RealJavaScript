@@ -454,3 +454,11 @@ Consider the following array for the examples listed below:
 > *class java.lang.Integer* in the system console. `var myVariable=123 and assign (create java.util.Date date) to &myVariable and call
 > java.lang.System.out.println (call &myVariable.getClass)` will print
 > *class java.util.Date* in the system console.
+
+**INTERFACE:**
+
+ - Objects for interfaces can be created through RJS. Interface object creation in RJS is similar to RJS Class declaration.
+>  ***Example***: `create android.view.View$OnClickListener onClickListener <? onClick <@ android.view.View view @> {call java.lang.System.out.println "Hello World"} ?>` will create an object for the interface *android.view.View.OnClickListener*. The method named *onClick(android.view.View)* for the interface *android.view.View.OnClickListener* is overridden with RJS code which would print the string *"Hello World"* on the system console whenever the click event happens for that view in this example.
+
+ - All abstract methods of an interface need not mandatorily be overrided while creating an object for the interface.
+> ***Example***: `create java.util.List list <? size {call java.lang.System.out.println 0} ?>` will create an object for the interface *java.util.List* but overrides only one method named *size()*. However, note that other method calls will fail except for the overridden methods for that interface as other methods have not been defined.

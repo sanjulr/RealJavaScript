@@ -3,8 +3,10 @@ package com.zero1.realjavascript;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,9 +65,9 @@ class RJSCommand {
 			return new RJSResult(new RJSParameter(trimmedCommand).getParameter());
 		else if (RJSParameter.isObjectAccess(trimmedCommand))
 			return new RJSResult(new RJSParameter(trimmedCommand).getParameter());
-		else if (RJSParameter.isStringAccess(command)) {
+		else if (RJSParameter.isStringAccess(command))
 			return new RJSResult(RJSDataPool.get(command));
-		} else if (isIsCommand())
+		else if (isIsCommand())
 			return executeIsCommand(from);
 		else if (isVarCommand())
 			return executeVarCommand(from);
@@ -441,7 +443,7 @@ class RJSCommand {
 		}
 	}
 
-	private RJSResult executeCreateCommand(Object from)
+	private RJSResult executeCreateCommand(final Object from)
 			throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchFieldException,
 			SecurityException, ClassNotFoundException, InstantiationException, NoSuchMethodException {
 		String trimmedUpperCaseCommand = upperCaseCommand.trim();
@@ -504,6 +506,68 @@ class RJSCommand {
 			}
 			RJSResult rjsResult = new RJSResult(resultObject, objectName);
 			return rjsResult;
+		}
+		int length = parametersString.length();
+		if ((parametersString.contains(RJSKeyword.INTERFACE_METHODS_OPEN.toString())) && ((length
+				- parametersString.replace(RJSKeyword.INTERFACE_METHODS_OPEN.toString(), "").length()) == (length
+						- parametersString.replace(RJSKeyword.INTERFACE_METHODS_CLOSE.toString(), "").length()))) {
+			final RJSClass rjsClass = new RJSClass(className);
+			int indexOfMethods = parametersString.indexOf(RJSKeyword.INTERFACE_METHODS_OPEN.toString());
+			int indexOfMethodsStart = command.indexOf(RJSKeyword.INTERFACE_METHODS_OPEN.toString(), indexOfMethods)
+					+ RJSKeyword.INTERFACE_METHODS_CLOSE.length();
+			int indexOfMethodsEnd = command.indexOf(RJSKeyword.INTERFACE_METHODS_CLOSE.toString(), indexOfMethodsStart);
+			createClassMethods(rjsClass, command.substring(indexOfMethodsStart, indexOfMethodsEnd));
+			Class<?> interfaceClass = Class.forName(className);
+			Object interfaceObject = Proxy.newProxyInstance(interfaceClass.getClassLoader(),
+					new Class[] { interfaceClass }, new InvocationHandler() {
+
+						@Override
+						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+							// TODO Auto-generated method stub
+							if (args == null)
+								args = new Object[] {};
+							int methodId = rjsClass.getMethodId(method.getName(), args);
+							String methodString = rjsClass.getMethod(methodId);
+							if (methodString == null || methodString.isEmpty())
+								try {
+									return method.invoke(from, args);
+								} catch (Exception e) {
+									return getDefaultObject(method.getReturnType());
+								}
+							if (args.length > 0)
+								rjsClass.setMethodArguments(method.getName(), args);
+							methodString = methodString.replace(RJSKeyword.METHOD_ARGUMENT_ACCESS.toString(),
+									RJSKeyword.METHOD_ARGUMENT_ACCESS.toString() + methodId);
+							int lastCommandIndex = -1;
+							while (methodString.indexOf(RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString(),
+									lastCommandIndex) != -1) {
+								int indexOfStartOfCommand = methodString.indexOf(RJSKeyword.WITH_DATA.toString()
+										+ RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.toString(), lastCommandIndex);
+								int indexOfEndOfCommand = methodString
+										.indexOf(RJSKeyword.DATA_POOL_CLOSE_BRACE.toString(), indexOfStartOfCommand)
+										+ RJSKeyword.DATA_POOL_CLOSE_BRACE.length();
+								String commandString = (String) RJSDataPool
+										.get(methodString.substring(indexOfStartOfCommand, indexOfEndOfCommand));
+								commandString = commandString.replace(RJSKeyword.METHOD_ARGUMENT_ACCESS.toString(),
+										RJSKeyword.METHOD_ARGUMENT_ACCESS.toString() + methodId);
+								int innerCommandIndex = new RJSResult(commandString, ResultType.COMMAND).getIndex();
+								methodString = new StringBuilder(methodString).replace(
+										lastCommandIndex = indexOfStartOfCommand + RJSKeyword.WITH_DATA.length()
+												+ RJSKeyword.DATA_POOL_COMMAND_OPEN_BRACE.length(),
+										indexOfEndOfCommand - RJSKeyword.DATA_POOL_CLOSE_BRACE.length(),
+										String.valueOf(innerCommandIndex)).toString();
+							}
+							List<RJSResult> results = RJSParser.parse(rjsClass, methodString);
+							rjsClass.clearMethodArguments(method.getName());
+							RJSResult result = results.get(results.size() - 1);
+							if (result.getIndex() != -1)
+								return result;
+							else
+								return getDefaultObject(method.getReturnType());
+						}
+					});
+			RJSResult result = new RJSResult(interfaceObject, objectName);
+			return result;
 		}
 		List<RJSParameter> parameters = getParametersFromParametersString(from, instanceParameters,
 				RJSKeyword.COMMA.toString());
@@ -1516,6 +1580,28 @@ class RJSCommand {
 			return Double.TYPE;
 		else if (objectClass.equals(Void.class))
 			return Void.TYPE;
+		else
+			return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> T getDefaultObject(Class<T> primitiveClass) {
+		if (primitiveClass.equals(byte.class))
+			return (T) new Byte((byte) 0);
+		else if (primitiveClass.equals(short.class))
+			return (T) new Short((short) 0);
+		else if (primitiveClass.equals(boolean.class))
+			return (T) new Boolean(false);
+		else if (primitiveClass.equals(char.class))
+			return (T) new Character((char) 0);
+		else if (primitiveClass.equals(int.class))
+			return (T) new Integer(0);
+		else if (primitiveClass.equals(long.class))
+			return (T) new Long(0l);
+		else if (primitiveClass.equals(float.class))
+			return (T) new Float(0f);
+		else if (primitiveClass.equals(double.class))
+			return (T) new Double(0d);
 		else
 			return null;
 	}

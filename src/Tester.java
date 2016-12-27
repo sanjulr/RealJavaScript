@@ -53,7 +53,7 @@ public class Tester {
 		// String command = "if{(is 2>1) && (is 3>1)} then {call
 		// java.lang.System.out.println true} else {call
 		// java.lang.System.out.println false}";
-		String command = "call java.lang.System.out.println (call doubleD 431)";
+		String command = "create java.util.List list <? size {call java.lang.System.out.println 0} ?> and call &list.add 3";
 		long time1 = System.currentTimeMillis();
 		RJSBridge.interpret(this, command, "");
 		long time2 = System.currentTimeMillis();
