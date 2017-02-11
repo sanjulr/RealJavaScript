@@ -1,4 +1,5 @@
 import java.util.Date;
+import java.util.TimeZone;
 
 import com.zero1.realjavascript.RJSBridge;
 
@@ -53,9 +54,10 @@ public class Tester {
 		// String command = "if{(is 2>1) && (is 3>1)} then {call
 		// java.lang.System.out.println true} else {call
 		// java.lang.System.out.println false}";
-		String command = "create java.util.List list <? size {call java.lang.System.out.println 0} ?> and call &list.add 3";
+		String command="CALL prints (CALL java.util.TimeZone.getDefault)";
+//		String command = "create java.util.List list <? size {call java.lang.System.out.println 0} ?> and call &list.add 3";
 		long time1 = System.currentTimeMillis();
-		RJSBridge.interpret(this, command, "");
+		RJSBridge.interpret(Tester.class, command, "");
 		long time2 = System.currentTimeMillis();
 		long diff1 = time2 - time1;
 		System.out.println("\nTook " + diff1 / 1000d + " seconds...\n");
@@ -71,6 +73,10 @@ public class Tester {
 
 	private static void hi(String name) {
 		System.out.println("Hi " + name);
+	}
+	
+	private static void prints(Object obj) {
+		System.out.println(obj);
 	}
 
 	private void printHello() {

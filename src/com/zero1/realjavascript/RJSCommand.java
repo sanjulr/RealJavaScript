@@ -1108,13 +1108,13 @@ class RJSCommand {
 							variableParameter = new RJSParameter(type);
 					} else {
 						Field field = null;
-						if (execFrom instanceof Class)
-							field = ((Class<?>) execFrom).getDeclaredField(trimmedParameter);
-						else
-							try {
+						try {
+							if (execFrom instanceof Class)
+								field = ((Class<?>) execFrom).getDeclaredField(trimmedParameter);
+							else
 								field = execFrom.getClass().getDeclaredField(trimmedParameter);
-							} catch (NoSuchFieldException e) {
-							}
+						} catch (NoSuchFieldException e) {
+						}
 						if (field != null) {
 							if (field.getType().isArray())
 								variableParameter = new RJSParameter(field.getType().getComponentType());
